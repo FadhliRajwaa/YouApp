@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/constants/api_constants.dart';
@@ -48,22 +49,27 @@ class AuthController extends GetxController {
         passwordController.text,
       );
 
+      final message = result['message']?.toString() ?? '';
       final token = result['access_token'];
-      final refreshToken = result['refresh_token'];
-      final userId = result['userId'];
       if (token != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(StorageKeys.accessToken, token);
-        if (refreshToken != null) {
-          await prefs.setString(StorageKeys.refreshToken, refreshToken);
-        }
-        if (userId != null) {
-          await prefs.setString(StorageKeys.userId, userId.toString());
-        }
         Get.offAllNamed(AppRoutes.profile);
+      } else {
+        Get.snackbar('Error', message.isNotEmpty ? message : 'Login failed',
+            backgroundColor: Colors.red.withValues(alpha: 0.8), colorText: Colors.white);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Invalid credentials',
+      String errorMsg = 'Invalid credentials';
+      if (e is DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          errorMsg = data['message'] is List
+              ? (data['message'] as List).join(', ')
+              : data['message'].toString();
+        }
+      }
+      Get.snackbar('Error', errorMsg,
           backgroundColor: Colors.red.withValues(alpha: 0.8), colorText: Colors.white);
     } finally {
       isLoading.value = false;
@@ -87,17 +93,34 @@ class AuthController extends GetxController {
 
     isLoading.value = true;
     try {
-      await _authProvider.register(
+      final result = await _authProvider.register(
         emailController.text.trim(),
         usernameController.text.trim(),
         passwordController.text,
       );
 
+      final message = result['message']?.toString() ?? '';
+
+      if (message.toLowerCase().contains('already exists')) {
+        Get.snackbar('Error', 'User already exists. Please login instead.',
+            backgroundColor: Colors.red.withValues(alpha: 0.8), colorText: Colors.white);
+        return;
+      }
+
       Get.snackbar('Success', 'Account created! Please login.',
           backgroundColor: Colors.green.withValues(alpha: 0.8), colorText: Colors.white);
       Get.offNamed(AppRoutes.login);
     } catch (e) {
-      Get.snackbar('Error', 'Registration failed. Try again.',
+      String errorMsg = 'Registration failed. Try again.';
+      if (e is DioException && e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data['message'] != null) {
+          errorMsg = data['message'] is List
+              ? (data['message'] as List).join(', ')
+              : data['message'].toString();
+        }
+      }
+      Get.snackbar('Error', errorMsg,
           backgroundColor: Colors.red.withValues(alpha: 0.8), colorText: Colors.white);
     } finally {
       isLoading.value = false;

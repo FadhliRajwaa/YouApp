@@ -213,9 +213,9 @@ class ProfileController extends GetxController {
             selectedBirthday.value?.toIso8601String().split('T')[0],
         'height': int.tryParse(heightController.text),
         'weight': int.tryParse(weightController.text),
-        'interests': interests.isEmpty ? null : interests.toList(),
+        'interests': interests.isNotEmpty ? interests.toList() : <String>[],
       };
-      // Remove null values to avoid sending empty fields
+      // Remove null values to avoid sending empty fields (but keep interests)
       data.removeWhere((key, value) => value == null);
 
       // Try update first; if 500/404, fallback to create
