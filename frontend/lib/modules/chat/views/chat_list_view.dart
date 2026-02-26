@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../app/routes/app_routes.dart';
@@ -126,50 +127,115 @@ class ChatListView extends GetView<ChatController> {
   }
 
   void _showNewChatDialog(BuildContext context) {
-    final idController = TextEditingController();
+    final searchController = TextEditingController();
+    Timer? debounce;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF162329),
         title: const Text('New Chat',
             style: TextStyle(color: Colors.white, fontSize: 16)),
-        content: TextField(
-          controller: idController,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-          decoration: InputDecoration(
-            hintText: 'Enter User ID',
-            hintStyle:
-                const TextStyle(color: AppColors.white40, fontSize: 14),
-            filled: true,
-            fillColor: AppColors.inputBg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: searchController,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Search by username...',
+                  hintStyle:
+                      const TextStyle(color: AppColors.white40, fontSize: 14),
+                  filled: true,
+                  fillColor: AppColors.inputBg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon:
+                      const Icon(Icons.search, color: AppColors.white40),
+                ),
+                onChanged: (value) {
+                  debounce?.cancel();
+                  debounce = Timer(const Duration(milliseconds: 400), () {
+                    controller.searchUsers(value);
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Obx(() {
+                  if (controller.isSearching.value) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFD5BE88),
+                        strokeWidth: 2,
+                      ),
+                    );
+                  }
+                  if (controller.searchResults.isEmpty) {
+                    return Center(
+                      child: Text(
+                        searchController.text.isEmpty
+                            ? 'Type a username to search'
+                            : 'No users found',
+                        style: const TextStyle(
+                            color: AppColors.white40, fontSize: 13),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: controller.searchResults.length,
+                    itemBuilder: (context, index) {
+                      final user = controller.searchResults[index];
+                      final userId = (user['_id'] ?? '').toString();
+                      final username = (user['username'] ?? '').toString();
+                      final name = (user['name'] ?? username).toString();
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.inputBg,
+                          child: Text(
+                            username.isNotEmpty
+                                ? username[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(name,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 14)),
+                        subtitle: Text('@$username',
+                            style: const TextStyle(
+                                color: AppColors.white40, fontSize: 12)),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          debounce?.cancel();
+                          controller.searchResults.clear();
+                          controller.setReceiver(userId, name);
+                          Get.toNamed(AppRoutes.chatRoom);
+                        },
+                      );
+                    },
+                  );
+                }),
+              ),
+            ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              debounce?.cancel();
+              controller.searchResults.clear();
+              Navigator.pop(ctx);
+            },
             child: const Text('Cancel',
                 style: TextStyle(color: AppColors.white40)),
-          ),
-          TextButton(
-            onPressed: () {
-              final userId = idController.text.trim();
-              if (userId.isNotEmpty) {
-                Navigator.pop(ctx);
-                controller.setReceiver(userId, userId);
-                Get.toNamed(AppRoutes.chatRoom);
-              }
-            },
-            child: ShaderMask(
-              shaderCallback: (bounds) =>
-                  AppColors.goldenGradient.createShader(bounds),
-              child: const Text('Start Chat',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600)),
-            ),
           ),
         ],
       ),

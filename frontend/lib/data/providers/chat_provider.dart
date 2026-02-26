@@ -7,6 +7,18 @@ class ChatProvider {
 
   ChatProvider(this._api);
 
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    final response = await _api.get(
+      ApiConstants.searchUsers,
+      queryParams: {'query': query},
+    );
+    final data = response.data;
+    if (data is List) {
+      return data.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
   Future<MessageModel> sendMessage(String receiverId, String content) async {
     final response = await _api.post(ApiConstants.sendMessage, data: {
       'receiverId': receiverId,

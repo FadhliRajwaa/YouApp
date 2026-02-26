@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateProfileDto, UpdateProfileDto } from './dto/profile.dto';
@@ -20,6 +20,19 @@ export class UsersController {
     @Body() dto: CreateProfileDto,
   ) {
     return this.usersService.createProfile(userId, dto);
+  }
+
+  @Get('searchUsers')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Search users by username' })
+  @ApiResponse({ status: 200, description: 'Users found' })
+  async searchUsers(
+    @CurrentUser('userId') userId: string,
+    @Query('query') query: string,
+  ) {
+    if (!query || query.trim().length === 0) return [];
+    return this.usersService.searchUsers(query.trim(), userId);
   }
 
   @Get('getProfile')

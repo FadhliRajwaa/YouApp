@@ -9,6 +9,7 @@ class ApiConstants {
   static const String createProfile = '/api/createProfile';
   static const String getProfile = '/api/getProfile';
   static const String updateProfile = '/api/updateProfile';
+  static const String searchUsers = '/api/searchUsers';
   static const String sendMessage = '/api/sendMessage';
   static const String viewMessages = '/api/viewMessages';
 }

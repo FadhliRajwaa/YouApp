@@ -12,6 +12,10 @@ class ChatController extends GetxController {
   final messageController = TextEditingController();
   final scrollController = ScrollController();
 
+  // Search
+  final searchResults = <Map<String, dynamic>>[].obs;
+  final isSearching = false.obs;
+
   late final ChatProvider _chatProvider;
   Timer? _pollTimer;
 
@@ -79,6 +83,23 @@ class ChatController extends GetxController {
     currentReceiverId.value = '';
     currentReceiverName.value = '';
     messages.clear();
+  }
+
+  Future<void> searchUsers(String query) async {
+    if (query.trim().isEmpty) {
+      searchResults.clear();
+      return;
+    }
+    isSearching.value = true;
+    try {
+      final results = await _chatProvider.searchUsers(query.trim());
+      searchResults.value = results;
+    } catch (e) {
+      debugPrint('Search users error: $e');
+      searchResults.clear();
+    } finally {
+      isSearching.value = false;
+    }
   }
 
   Future<void> sendMessage() async {

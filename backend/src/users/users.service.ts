@@ -38,6 +38,17 @@ export class UsersService {
     return user;
   }
 
+  async searchUsers(query: string, currentUserId: string): Promise<UserDocument[]> {
+    return this.userModel
+      .find({
+        _id: { $ne: currentUserId },
+        username: { $regex: query, $options: 'i' },
+      })
+      .select('username name profileImage')
+      .limit(20)
+      .exec();
+  }
+
   async getProfile(userId: string): Promise<UserDocument> {
     const user = await this.userModel.findById(userId).select('-password');
     if (!user) throw new NotFoundException('User not found');

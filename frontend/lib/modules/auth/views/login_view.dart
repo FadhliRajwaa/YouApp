@@ -10,10 +10,6 @@ class LoginView extends GetView<AuthController> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to text changes for enabling/disabling button
-    controller.emailController.addListener(() => controller.update());
-    controller.passwordController.addListener(() => controller.update());
-
     return Scaffold(
       body: GradientBackground(
         child: SafeArea(

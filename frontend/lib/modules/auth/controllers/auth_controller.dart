@@ -24,6 +24,14 @@ class AuthController extends GetxController {
   void onInit() {
     super.onInit();
     _authProvider = AuthProvider(ApiClient());
+    // Clear fields on fresh init (e.g. after logout → re-login)
+    emailController.clear();
+    usernameController.clear();
+    passwordController.clear();
+    confirmPasswordController.clear();
+    // Listeners for enabling/disabling login button
+    emailController.addListener(() => update());
+    passwordController.addListener(() => update());
   }
 
   @override

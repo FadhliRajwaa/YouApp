@@ -49,6 +49,8 @@ class ProfileView extends GetView<ProfileController> {
                 Navigator.pop(ctx);
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.remove(StorageKeys.accessToken);
+                await prefs.remove(StorageKeys.refreshToken);
+                await prefs.remove(StorageKeys.userId);
                 Get.offAllNamed(AppRoutes.landing);
               },
             ),

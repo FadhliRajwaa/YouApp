@@ -48,6 +48,8 @@ class ApiClient {
 
   Future<void> _logout(SharedPreferences prefs) async {
     await prefs.remove(StorageKeys.accessToken);
+    await prefs.remove(StorageKeys.refreshToken);
+    await prefs.remove(StorageKeys.userId);
     Get.offAllNamed(AppRoutes.login);
   }
 
