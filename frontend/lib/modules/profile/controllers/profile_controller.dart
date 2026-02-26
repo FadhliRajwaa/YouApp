@@ -3,10 +3,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/network/api_client.dart';
-import '../../../core/constants/api_constants.dart';
-import '../../../app/routes/app_routes.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/providers/profile_provider.dart';
 
@@ -56,11 +53,6 @@ class ProfileController extends GetxController {
       _populateFields(profile);
     } on DioException catch (e) {
       debugPrint('Load profile error: $e');
-      if (e.response?.statusCode == 401) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(StorageKeys.accessToken);
-        Get.offAllNamed(AppRoutes.login);
-      }
     } catch (e) {
       debugPrint('Load profile error: $e');
     } finally {
@@ -96,13 +88,13 @@ class ProfileController extends GetxController {
     if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return 'Virgo';
     if ((month == 9 && day >= 23) || (month == 10 && day <= 23)) return 'Libra';
     if ((month == 10 && day >= 24) || (month == 11 && day <= 21)) {
-      return 'Scorpius';
+      return 'Scorpio';
     }
     if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) {
       return 'Sagittarius';
     }
     if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) {
-      return 'Capricornus';
+      return 'Capricorn';
     }
     if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) {
       return 'Aquarius';
@@ -115,7 +107,8 @@ class ProfileController extends GetxController {
       'Rat', 'Ox', 'Tiger', 'Rabbit', 'Dragon', 'Snake',
       'Horse', 'Goat', 'Monkey', 'Rooster', 'Dog', 'Pig',
     ];
-    return zodiacs[(year - 1900) % 12];
+    final offset = year - 1900;
+    return zodiacs[((offset % 12) + 12) % 12];
   }
 
   Future<void> pickBirthday(BuildContext context) async {
@@ -214,13 +207,16 @@ class ProfileController extends GetxController {
     isLoading.value = true;
     try {
       final data = <String, dynamic>{
-        'name': nameController.text.trim(),
+        'name': nameController.text.trim().isEmpty ? null : nameController.text.trim(),
+        'gender': selectedGender.value.isNotEmpty ? selectedGender.value : null,
         'birthday':
-            selectedBirthday.value?.toIso8601String().split('T')[0] ?? '',
-        'height': int.tryParse(heightController.text) ?? 0,
-        'weight': int.tryParse(weightController.text) ?? 0,
-        'interests': interests.toList(),
+            selectedBirthday.value?.toIso8601String().split('T')[0],
+        'height': int.tryParse(heightController.text),
+        'weight': int.tryParse(weightController.text),
+        'interests': interests.isEmpty ? null : interests.toList(),
       };
+      // Remove null values to avoid sending empty fields
+      data.removeWhere((key, value) => value == null);
 
       // Try update first; if 500/404, fallback to create
       UserModel profile;

@@ -16,7 +16,17 @@ export class UsersService {
     const horoscope = getHoroscope(birthday);
     const zodiac = getZodiac(birthday);
 
-    const updateData: any = { ...dto, birthday, horoscope, zodiac };
+    const updateData = {
+      name: dto.name,
+      gender: dto.gender,
+      birthday,
+      horoscope,
+      zodiac,
+      height: dto.height,
+      weight: dto.weight,
+      interests: dto.interests,
+      profileImage: dto.profileImage,
+    };
 
     const user = await this.userModel.findByIdAndUpdate(
       userId,
@@ -35,13 +45,26 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto): Promise<UserDocument> {
-    const updateData: any = { ...dto };
+    const updateData: Record<string, any> = {};
 
-    if (dto.birthday) {
-      const birthday = new Date(dto.birthday);
-      updateData.birthday = birthday;
-      updateData.horoscope = getHoroscope(birthday);
-      updateData.zodiac = getZodiac(birthday);
+    if (dto.name !== undefined) updateData.name = dto.name;
+    if (dto.gender !== undefined) updateData.gender = dto.gender;
+    if (dto.height !== undefined) updateData.height = dto.height;
+    if (dto.weight !== undefined) updateData.weight = dto.weight;
+    if (dto.interests !== undefined) updateData.interests = dto.interests;
+    if (dto.profileImage !== undefined) updateData.profileImage = dto.profileImage;
+
+    if (dto.birthday !== undefined) {
+      if (dto.birthday === null) {
+        updateData.birthday = null;
+        updateData.horoscope = null;
+        updateData.zodiac = null;
+      } else {
+        const birthday = new Date(dto.birthday);
+        updateData.birthday = birthday;
+        updateData.horoscope = getHoroscope(birthday);
+        updateData.zodiac = getZodiac(birthday);
+      }
     }
 
     const user = await this.userModel.findByIdAndUpdate(

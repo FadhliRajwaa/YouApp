@@ -30,16 +30,16 @@ describe('Horoscope Utility', () => {
       expect(getHoroscope(new Date('1995-10-10'))).toBe('Libra');
     });
 
-    it('should return Scorpius for November 5', () => {
-      expect(getHoroscope(new Date('1995-11-05'))).toBe('Scorpius');
+    it('should return Scorpio for November 5', () => {
+      expect(getHoroscope(new Date('1995-11-05'))).toBe('Scorpio');
     });
 
     it('should return Sagittarius for December 1', () => {
       expect(getHoroscope(new Date('1995-12-01'))).toBe('Sagittarius');
     });
 
-    it('should return Capricornus for January 5', () => {
-      expect(getHoroscope(new Date('1995-01-05'))).toBe('Capricornus');
+    it('should return Capricorn for January 5', () => {
+      expect(getHoroscope(new Date('1995-01-05'))).toBe('Capricorn');
     });
 
     it('should return Aquarius for February 10', () => {

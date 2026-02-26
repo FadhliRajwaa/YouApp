@@ -14,10 +14,13 @@ import { User, UserSchema } from '../users/schemas/user.schema';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'youapp-secret-key-2024',
-        signOptions: { expiresIn: '7d' as const },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const expiresIn = configService.get<string>('JWT_EXPIRATION', '15m');
+        return {
+          secret: configService.getOrThrow<string>('JWT_SECRET'),
+          signOptions: { expiresIn: expiresIn as any },
+        };
+      },
     }),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],

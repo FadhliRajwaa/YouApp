@@ -4,7 +4,7 @@ import 'package:youapp/core/constants/api_constants.dart';
 void main() {
   group('ApiConstants', () {
     test('baseUrl is correct', () {
-      expect(ApiConstants.baseUrl, 'http://techtest.youapp.ai');
+      expect(ApiConstants.baseUrl, 'https://techtest.youapp.ai');
     });
 
     test('all endpoints start with /api/', () {

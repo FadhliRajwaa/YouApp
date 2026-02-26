@@ -42,19 +42,24 @@ class AuthController extends GetxController {
 
     isLoading.value = true;
     try {
-      // External API only authenticates by email field;
-      // send same input for both to satisfy required DTO fields.
-      final input = emailController.text.trim();
+      final input = emailController.text.trim().toLowerCase();
       final result = await _authProvider.login(
-        input,
         input,
         passwordController.text,
       );
 
       final token = result['access_token'];
+      final refreshToken = result['refresh_token'];
+      final userId = result['userId'];
       if (token != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(StorageKeys.accessToken, token);
+        if (refreshToken != null) {
+          await prefs.setString(StorageKeys.refreshToken, refreshToken);
+        }
+        if (userId != null) {
+          await prefs.setString(StorageKeys.userId, userId.toString());
+        }
         Get.offAllNamed(AppRoutes.profile);
       }
     } catch (e) {

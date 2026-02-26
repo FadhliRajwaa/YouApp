@@ -15,10 +15,9 @@ class AuthProvider {
     return response.data;
   }
 
-  Future<Map<String, dynamic>> login(String email, String username, String password) async {
+  Future<Map<String, dynamic>> login(String usernameOrEmail, String password) async {
     final response = await _api.post(ApiConstants.login, data: {
-      'email': email,
-      'username': username,
+      'usernameOrEmail': usernameOrEmail,
       'password': password,
     });
     return response.data;

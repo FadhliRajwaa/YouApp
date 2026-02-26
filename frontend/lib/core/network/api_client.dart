@@ -7,6 +7,7 @@ import '../../app/routes/app_routes.dart';
 
 class ApiClient {
   late Dio _dio;
+  bool _isRefreshing = false;
 
   ApiClient() {
     _dio = Dio(BaseOptions(
@@ -21,29 +22,68 @@ class ApiClient {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString(StorageKeys.accessToken);
         if (token != null) {
-          options.headers['x-access-token'] = token;
+          options.headers['Authorization'] = 'Bearer $token';
         }
         debugPrint('[API] ${options.method} ${options.baseUrl}${options.path}');
-        debugPrint('[API] Data: ${options.data}');
         handler.next(options);
       },
       onResponse: (response, handler) {
-        debugPrint('[API] Response ${response.statusCode}: ${response.data}');
+        debugPrint('[API] Response ${response.statusCode}');
         handler.next(response);
       },
       onError: (error, handler) async {
-        debugPrint('[API] Error ${error.response?.statusCode}: ${error.response?.data}');
-        debugPrint('[API] Message: ${error.message}');
-        // Redirect to login on 401 Unauthorized
-        // External API returns 500 for expired tokens on auth-required endpoints
-        if (error.response?.statusCode == 401) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.remove(StorageKeys.accessToken);
-          Get.offAllNamed(AppRoutes.login);
+        debugPrint('[API] Error ${error.response?.statusCode}: ${error.message}');
+
+        // Auto-refresh on 401
+        if (error.response?.statusCode == 401 && !_isRefreshing) {
+          _isRefreshing = true;
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final refreshToken = prefs.getString(StorageKeys.refreshToken);
+
+            if (refreshToken != null) {
+              // Try to refresh the access token
+              final refreshDio = Dio(BaseOptions(
+                baseUrl: ApiConstants.baseUrl,
+                headers: {'Content-Type': 'application/json'},
+              ));
+              final response = await refreshDio.post(
+                ApiConstants.refresh,
+                data: {'refresh_token': refreshToken},
+              );
+
+              final newAccessToken = response.data['access_token'];
+              if (newAccessToken != null) {
+                await prefs.setString(StorageKeys.accessToken, newAccessToken);
+
+                // Retry the original request with new token
+                error.requestOptions.headers['Authorization'] =
+                    'Bearer $newAccessToken';
+                final retryResponse = await _dio.fetch(error.requestOptions);
+                _isRefreshing = false;
+                return handler.resolve(retryResponse);
+              }
+            }
+
+            // No refresh token or refresh failed - logout
+            await _logout(prefs);
+          } catch (e) {
+            debugPrint('[API] Refresh failed: $e');
+            final prefs = await SharedPreferences.getInstance();
+            await _logout(prefs);
+          }
+          _isRefreshing = false;
         }
+
         handler.next(error);
       },
     ));
+  }
+
+  Future<void> _logout(SharedPreferences prefs) async {
+    await prefs.remove(StorageKeys.accessToken);
+    await prefs.remove(StorageKeys.refreshToken);
+    Get.offAllNamed(AppRoutes.login);
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? queryParams}) {

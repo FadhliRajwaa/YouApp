@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/network/api_client.dart';
@@ -11,6 +12,7 @@ class ChatController extends GetxController {
   final scrollController = ScrollController();
 
   late final ChatProvider _chatProvider;
+  Timer? _pollTimer;
 
   // Current chat partner
   final currentReceiverId = ''.obs;
@@ -24,6 +26,7 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
+    _pollTimer?.cancel();
     messageController.dispose();
     scrollController.dispose();
     super.onClose();
@@ -33,6 +36,11 @@ class ChatController extends GetxController {
     currentReceiverId.value = receiverId;
     currentReceiverName.value = receiverName;
     loadMessages();
+
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _silentlyRefreshMessages();
+    });
   }
 
   Future<void> loadMessages() async {
@@ -49,6 +57,25 @@ class ChatController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<void> _silentlyRefreshMessages() async {
+    if (currentReceiverId.value.isEmpty) return;
+    try {
+      final result =
+          await _chatProvider.viewMessages(currentReceiverId.value);
+      if (result.length != messages.length) {
+        messages.value = result;
+        _scrollToBottom();
+      }
+    } catch (_) {}
+  }
+
+  void clearReceiver() {
+    _pollTimer?.cancel();
+    currentReceiverId.value = '';
+    currentReceiverName.value = '';
+    messages.clear();
   }
 
   Future<void> sendMessage() async {

@@ -53,7 +53,7 @@ describe('UsersService', () => {
   });
 
   describe('createProfile', () => {
-    it('should create profile with horoscope and zodiac', async () => {
+    it('should create profile with correct horoscope and zodiac and pass them to DB', async () => {
       const mockUser = {
         _id: 'user-id',
         name: 'John Doe',
@@ -69,7 +69,7 @@ describe('UsersService', () => {
         select: jest.fn().mockResolvedValue(mockUser),
       });
 
-      const result = await service.createProfile('user-id', {
+      await service.createProfile('user-id', {
         name: 'John Doe',
         birthday: '1995-08-17',
         height: 175,
@@ -77,8 +77,34 @@ describe('UsersService', () => {
         interests: ['Music'],
       });
 
-      expect(result.horoscope).toBe('Leo');
-      expect(result.zodiac).toBe('Pig');
+      // Verify the correct data is sent to the database
+      expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'user-id',
+        expect.objectContaining({
+          name: 'John Doe',
+          horoscope: 'Leo',
+          zodiac: 'Pig',
+          height: 175,
+          weight: 70,
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      mockUserModel.findByIdAndUpdate.mockReturnValue({
+        select: jest.fn().mockResolvedValue(null),
+      });
+
+      await expect(
+        service.createProfile('invalid-id', {
+          name: 'Test',
+          birthday: '1995-08-17',
+          height: 175,
+          weight: 70,
+          interests: [],
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -95,12 +121,36 @@ describe('UsersService', () => {
         select: jest.fn().mockResolvedValue(mockUser),
       });
 
-      const result = await service.updateProfile('user-id', {
+      await service.updateProfile('user-id', {
         name: 'Updated',
         birthday: '1995-03-25',
       });
 
-      expect(result.name).toBe('Updated');
+      // Verify horoscope was recalculated and passed to DB
+      expect(mockUserModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'user-id',
+        expect.objectContaining({
+          name: 'Updated',
+          horoscope: 'Aries',
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('should only update provided fields (explicit mapping)', async () => {
+      const mockUser = { _id: 'user-id', name: 'Updated' };
+
+      mockUserModel.findByIdAndUpdate.mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockUser),
+      });
+
+      await service.updateProfile('user-id', { name: 'Updated' });
+
+      const calledWith = mockUserModel.findByIdAndUpdate.mock.calls[0][1];
+      expect(calledWith).toEqual({ name: 'Updated' });
+      // Should NOT contain password, email, etc.
+      expect(calledWith).not.toHaveProperty('password');
+      expect(calledWith).not.toHaveProperty('email');
     });
   });
 });

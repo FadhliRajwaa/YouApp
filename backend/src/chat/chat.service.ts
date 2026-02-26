@@ -35,18 +35,25 @@ export class ChatService {
     return message;
   }
 
-  async getMessages(userId: string, otherUserId: string): Promise<MessageDocument[]> {
+  async getMessages(userId: string, otherUserId: string, page = 1, limit = 50): Promise<{ messages: MessageDocument[]; total: number }> {
     const userObjId = new Types.ObjectId(userId);
     const otherObjId = new Types.ObjectId(otherUserId);
 
+    const filter = {
+      $or: [
+        { senderId: userObjId, receiverId: otherObjId },
+        { senderId: otherObjId, receiverId: userObjId },
+      ],
+    };
+
+    const total = await this.messageModel.countDocuments(filter);
+    const skip = (page - 1) * limit;
+
     const messages = await this.messageModel
-      .find({
-        $or: [
-          { senderId: userObjId, receiverId: otherObjId },
-          { senderId: otherObjId, receiverId: userObjId },
-        ],
-      })
-      .sort({ createdAt: 1 })
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .populate('senderId', 'username name')
       .populate('receiverId', 'username name');
 
@@ -56,7 +63,7 @@ export class ChatService {
       { isRead: true },
     );
 
-    return messages;
+    return { messages: messages.reverse(), total };
   }
 
   async getUnreadCount(userId: string): Promise<number> {

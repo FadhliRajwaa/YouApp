@@ -17,8 +17,12 @@ describe('ChatService', () => {
       create: jest.fn(),
       find: jest.fn().mockReturnValue({
         sort: jest.fn().mockReturnValue({
-          populate: jest.fn().mockReturnValue({
-            populate: jest.fn().mockResolvedValue([]),
+          skip: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              populate: jest.fn().mockReturnValue({
+                populate: jest.fn().mockResolvedValue([]),
+              }),
+            }),
           }),
         }),
       }),
@@ -74,10 +78,11 @@ describe('ChatService', () => {
   });
 
   describe('getMessages', () => {
-    it('should return messages between two users', async () => {
+    it('should return messages between two users with pagination', async () => {
       const result = await service.getMessages(USER1_ID, USER2_ID);
-      expect(result).toEqual([]);
+      expect(result).toEqual({ messages: [], total: 0 });
       expect(mockMessageModel.find).toHaveBeenCalled();
+      expect(mockMessageModel.countDocuments).toHaveBeenCalled();
     });
   });
 

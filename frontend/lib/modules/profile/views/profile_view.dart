@@ -162,7 +162,8 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildProfileCard(dynamic user) {
     final hasData = user?.name != null && user.name!.isNotEmpty;
-    final hasImage = controller.selectedImagePath.value.isNotEmpty;
+    final hasLocalImage = controller.selectedImagePath.value.isNotEmpty;
+    final hasNetworkImage = user?.profileImage != null && user.profileImage!.isNotEmpty;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -173,10 +174,10 @@ class ProfileView extends GetView<ProfileController> {
       ),
       child: Stack(
         children: [
-          // Background: image or gradient
+          // Background: local image, network image, or gradient
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: hasImage
+            child: hasLocalImage
                 ? Stack(
                     fit: StackFit.expand,
                     children: [
@@ -184,28 +185,30 @@ class ProfileView extends GetView<ProfileController> {
                         File(controller.selectedImagePath.value),
                         fit: BoxFit.cover,
                       ),
-                      // Dark gradient overlay matching Figma design
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.76),
-                              Colors.transparent,
-                              Colors.black,
-                            ],
-                            stops: const [0.0, 0.46, 1.0],
-                          ),
-                        ),
-                      ),
+                      _buildImageGradientOverlay(),
                     ],
                   )
-                : Container(
-                    decoration: const BoxDecoration(
-                      gradient: AppColors.profileCardGradient,
-                    ),
-                  ),
+                : hasNetworkImage
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            user.profileImage!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              decoration: const BoxDecoration(
+                                gradient: AppColors.profileCardGradient,
+                              ),
+                            ),
+                          ),
+                          _buildImageGradientOverlay(),
+                        ],
+                      )
+                    : Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.profileCardGradient,
+                        ),
+                      ),
           ),
           // Bottom info
           Positioned(
@@ -293,6 +296,23 @@ class ProfileView extends GetView<ProfileController> {
                   fontSize: 12,
                   fontWeight: FontWeight.w600)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildImageGradientOverlay() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withValues(alpha: 0.76),
+            Colors.transparent,
+            Colors.black,
+          ],
+          stops: const [0.0, 0.46, 1.0],
+        ),
       ),
     );
   }
