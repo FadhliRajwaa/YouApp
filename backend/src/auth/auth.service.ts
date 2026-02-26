@@ -52,7 +52,11 @@ export class AuthService {
     refresh_token: string;
     userId: string;
   }> {
-    const identifier = loginDto.usernameOrEmail;
+    const identifier = loginDto.usernameOrEmail || loginDto.email || loginDto.username || '';
+
+    if (!identifier) {
+      throw new UnauthorizedException('Email or username is required');
+    }
 
     const user = await this.userModel.findOne({
       $or: [

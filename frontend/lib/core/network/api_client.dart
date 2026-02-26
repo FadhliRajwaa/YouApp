@@ -21,13 +21,15 @@ class ApiClient {
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString(StorageKeys.accessToken);
         if (token != null) {
+          // Send both headers for compatibility with external API and our backend
           options.headers['x-access-token'] = token;
+          options.headers['Authorization'] = 'Bearer $token';
         }
         debugPrint('[API] ${options.method} ${options.baseUrl}${options.path}');
         handler.next(options);
       },
       onResponse: (response, handler) {
-        debugPrint('[API] Response ${response.statusCode}: ${response.data}');
+        debugPrint('[API] Response ${response.statusCode}');
         handler.next(response);
       },
       onError: (error, handler) async {

@@ -12,8 +12,14 @@ class ChatProvider {
       'receiverId': receiverId,
       'content': content,
     });
-    final data = response.data['data'] ?? response.data;
-    return MessageModel.fromJson(data);
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      final messageData = data['data'] ?? data;
+      if (messageData is Map<String, dynamic>) {
+        return MessageModel.fromJson(messageData);
+      }
+    }
+    throw Exception('Unexpected response format');
   }
 
   Future<List<MessageModel>> viewMessages(String receiverId) async {
@@ -21,9 +27,19 @@ class ChatProvider {
       ApiConstants.viewMessages,
       queryParams: {'receiverId': receiverId},
     );
-    final data = response.data['data'] ?? response.data;
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      final messages = data['data'] ?? data['messages'];
+      if (messages is List) {
+        return messages
+            .map((m) => MessageModel.fromJson(m as Map<String, dynamic>))
+            .toList();
+      }
+    }
     if (data is List) {
-      return data.map((m) => MessageModel.fromJson(m)).toList();
+      return data
+          .map((m) => MessageModel.fromJson(m as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }

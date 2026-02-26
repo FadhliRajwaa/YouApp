@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import '../../../core/network/api_client.dart';
 import '../../../data/models/message_model.dart';
 import '../../../data/providers/chat_provider.dart';
@@ -52,8 +53,10 @@ class ChatController extends GetxController {
           await _chatProvider.viewMessages(currentReceiverId.value);
       messages.value = result;
       _scrollToBottom();
+    } on DioException catch (e) {
+      _handleChatError(e, 'load');
     } catch (e) {
-      // Messages might not exist yet
+      debugPrint('Load messages error: $e');
     } finally {
       isLoading.value = false;
     }
@@ -89,8 +92,37 @@ class ChatController extends GetxController {
           await _chatProvider.sendMessage(currentReceiverId.value, text);
       messages.add(message);
       _scrollToBottom();
+    } on DioException catch (e) {
+      _handleChatError(e, 'send');
     } catch (e) {
-      Get.snackbar('Error', 'Failed to send message',
+      debugPrint('Send message error: $e');
+      Get.snackbar('Error', 'Failed to send message: $e',
+          backgroundColor: Colors.red.withValues(alpha: 0.8),
+          colorText: Colors.white);
+    }
+  }
+
+  void _handleChatError(DioException e, String action) {
+    final statusCode = e.response?.statusCode;
+    debugPrint('Chat $action error: $statusCode - ${e.response?.data}');
+
+    if (statusCode == 404) {
+      Get.snackbar(
+        'Chat Unavailable',
+        'Chat requires the YouApp backend server.\nChange baseUrl in api_constants.dart to your backend URL.',
+        backgroundColor: Colors.orange.withValues(alpha: 0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 5),
+      );
+    } else {
+      String errorMsg = 'Failed to $action messages';
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        errorMsg = data['message'] is List
+            ? (data['message'] as List).join(', ')
+            : data['message'].toString();
+      }
+      Get.snackbar('Error', errorMsg,
           backgroundColor: Colors.red.withValues(alpha: 0.8),
           colorText: Colors.white);
     }

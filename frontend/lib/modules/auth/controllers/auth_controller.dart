@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../core/network/api_client.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../data/providers/auth_provider.dart';
@@ -54,6 +55,19 @@ class AuthController extends GetxController {
       if (token != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(StorageKeys.accessToken, token);
+
+        // Extract userId from JWT payload or response
+        final userId = result['userId']?.toString() ?? _extractUserIdFromJwt(token);
+        if (userId.isNotEmpty) {
+          await prefs.setString(StorageKeys.userId, userId);
+        }
+
+        // Store refresh_token if available (our backend provides it)
+        final refreshToken = result['refresh_token'];
+        if (refreshToken != null) {
+          await prefs.setString(StorageKeys.refreshToken, refreshToken);
+        }
+
         Get.offAllNamed(AppRoutes.profile);
       } else {
         Get.snackbar('Error', message.isNotEmpty ? message : 'Login failed',
@@ -124,6 +138,23 @@ class AuthController extends GetxController {
           backgroundColor: Colors.red.withValues(alpha: 0.8), colorText: Colors.white);
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  /// Decode JWT payload to extract user ID (works without verification)
+  String _extractUserIdFromJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return '';
+      // Pad base64 string if needed
+      String payload = parts[1];
+      payload = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(payload));
+      final Map<String, dynamic> data = json.decode(decoded);
+      // External API uses 'id', our backend uses 'sub'
+      return (data['sub'] ?? data['id'] ?? '').toString();
+    } catch (_) {
+      return '';
     }
   }
 }
