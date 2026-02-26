@@ -1,7 +1,7 @@
 class ApiConstants {
   // Change this to your backend URL when running locally
   // e.g., 'http://192.168.x.x:3000' for local backend with chat support
-  static const String baseUrl = 'https://techtest.youapp.ai';
+  static const String baseUrl = 'http://192.168.100.114:3000';
 
   static const String register = '/api/register';
   static const String login = '/api/login';
